@@ -1,0 +1,3 @@
+490	Eeas	Pbus	Rx
+511	bcu	Pbus	Rx
+512	Ecc	Pbus	Tx
