@@ -7,12 +7,12 @@ class Main(QWidget,Ui_MainWin):
     def __init__(self):
         super(Main, self).__init__()
         self.setupUi(self)
-        self.lineEdit.setText(os.getcwd() + '\配置.txt')
+        self.lineEdit.setText(os.path.abspath(os.path.dirname(os.getcwd())) + '\配置.txt')
         self.pushButton_openfile.clicked.connect(self.OpenExcel)
         self.pushButton_startcreat.clicked.connect(self.StartCreat)
         self.pushButton_filesave.clicked.connect(self.choiceDir)
         self.timeCurrent = time.strftime('%Y-%m-%d',time.localtime(time.time()))
-        self.lineEdit_codesave_path.setText(os.getcwd())
+        self.lineEdit_codesave_path.setText(os.path.abspath(os.path.dirname(os.getcwd())))
         self.saveDir = self.lineEdit_codesave_path.text()
         self.show()
 
@@ -62,7 +62,7 @@ class Main(QWidget,Ui_MainWin):
             with open('.\demo.txt','r',encoding = 'utf-8') as f:
                 demo_str = f.read()
         except Exception:
-            pass
+            QMessageBox.warning(self,'警告','未在软件安装路径找到demo.txt文件')
         f_write = open(self.saveDir + '\Rte_Com_Can.c','a')
         for config in self.config_list:
             fundef_write_str = demo_str.replace('($Channel$)',config[2]).replace('($Dic$)',config[3]).replace('($Node$)',config[1])\
