@@ -39,11 +39,14 @@ class Main(QWidget,Ui_MainWin):
             line = line[:-1].split('\t')
             self.config_list.append(line)
         f_read.close()
-        self.Creat_Rte_c()
-        self.Creat_Rte_h()
-        self.Creat_ComCfg_c()
-        self.Creat_ComCfg_h()
-        QMessageBox.information(self,'提示','代码生成完毕')
+        try:
+            self.Creat_Rte_c()
+            self.Creat_Rte_h()
+            self.Creat_ComCfg_c()
+            self.Creat_ComCfg_h()
+            QMessageBox.information(self,'提示','代码生成完毕')
+        except:
+            QMessageBox.warning(self,'提示','代码生成失败')
 
         #以下部分为Rte_Com_Can.c文件生成
     def Creat_Rte_c(self):
@@ -62,13 +65,14 @@ class Main(QWidget,Ui_MainWin):
             with open('.\demo.txt','r',encoding = 'utf-8') as f:
                 demo_str = f.read()
         except Exception:
-            QMessageBox.warning(self,'警告','未在软件安装路径找到demo.txt文件')
+            QMessageBox.warning(self,'警告','软件安装路径未找到模板文件,终止生成代码')
+            os.remove(self.saveDir + '\Rte_Com_Can.c')
+            raise Exception
         f_write = open(self.saveDir + '\Rte_Com_Can.c','a')
         for config in self.config_list:
             fundef_write_str = demo_str.replace('($Channel$)',config[2]).replace('($Dic$)',config[3]).replace('($Node$)',config[1])\
                                 .replace('($ID$)',config[0]).replace('($Date$)',self.timeCurrent).replace('($Author$)',self.lineEdit_authorName.text())
             f_write.write(fundef_write_str)
-            print('ok')
         f_write.close()
     #以下函数生成Rte_Com_Can.h文件
     def Creat_Rte_h(self):

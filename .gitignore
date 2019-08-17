@@ -202,3 +202,7 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 /start.bat
+/Com_Cfg_Can.h
+/Rte_Com_Can.h
+/Com_Cfg_Can.c
+/dist/dist.rar
