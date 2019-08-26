@@ -1,0 +1,22 @@
+/*------------------------------------------------------------------------------
+| Function Name   : GetRTECOMMCAN_($Channel$)($Dic$)($Node$)0x($ID$)_Msg / SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg
+| Called by       :
+| Preconditions   :
+| Input Parameters: pMsg : message info pointer
+| Return Value    :
+| Description     : Get / Set ($Channel$)bus($Dic$)($Node$)0x($ID$) message
+| History         :
+|   DATE        AUTHOR          Description
+|   ----------  --------------  ------------------------------------------------
+|   ($Date$)   ($Author$)        
+------------------------------------------------------------------------------*/
+void GetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x$ID$)_MsgType **pMsg)
+{
+    assert_param(NULL != pMsg);
+    *pMsg = &(SsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg);
+}
+void SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x$ID$)_MsgType *pMsg)
+{
+    assert_param(NULL != pMsg);
+    SsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg = *pMsg;
+}
