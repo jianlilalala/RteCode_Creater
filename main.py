@@ -1,11 +1,14 @@
+import os
+import sys
+if hasattr(sys, 'frozen'):
+    os.environ['PATH'] = sys._MEIPASS + ";" + os.environ['PATH']
 from PyQt5.QtWidgets import QWidget,QApplication,QFileDialog,QMessageBox
 from mainWin import *
 import time
-import os
-import sys
 class Main(QWidget,Ui_MainWin):
     def __init__(self):
         super(Main, self).__init__()
+
         self.setupUi(self)
         self.lineEdit.setText(os.path.abspath(os.path.dirname(os.getcwd())) + '\配置.txt')
         self.pushButton_openfile.clicked.connect(self.OpenExcel)
@@ -32,7 +35,7 @@ class Main(QWidget,Ui_MainWin):
         try:
             f_read = open(self.lineEdit.text(),'r',encoding='utf-8')
         except FileNotFoundError:
-            QMessageBox.warning(self,'提示','并未找到所选路径文件,请检查路径')
+            QMessageBox.warning(self,'提示','并未找到所选路径配置文件,请检查路径')
             return
         #将配置文件中的每一行读取出来
         for line in f_read.readlines():
@@ -44,7 +47,9 @@ class Main(QWidget,Ui_MainWin):
             self.Creat_Rte_h()
             self.Creat_ComCfg_c()
             self.Creat_ComCfg_h()
+            #os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
             QMessageBox.information(self,'提示','代码生成完毕')
+            os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
         except:
             QMessageBox.warning(self,'提示','代码生成失败')
 
@@ -61,6 +66,7 @@ class Main(QWidget,Ui_MainWin):
         except Exception:
             pass
         #变量定义完以后再进行函数定义
+        '''
         try:
             with open('.\demo.txt','r',encoding = 'utf-8') as f:
                 demo_str = f.read()
@@ -68,6 +74,29 @@ class Main(QWidget,Ui_MainWin):
             QMessageBox.warning(self,'警告','软件安装路径未找到模板文件,终止生成代码')
             os.remove(self.saveDir + '\Rte_Com_Can.c')
             raise Exception
+        '''
+        demo_str = '''/*------------------------------------------------------------------------------
+| Function Name   : GetRTECOMMCAN_($Channel$)($Dic$)($Node$)0x($ID$)_Msg / SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg
+| Called by       :
+| Preconditions   :
+| Input Parameters: pMsg : message info pointer
+| Return Value    :
+| Description     : Get / Set ($Channel$)bus($Dic$)($Node$)0x($ID$) message
+| History         :
+|   DATE        AUTHOR          Description
+|   ----------  --------------  ------------------------------------------------
+|   ($Date$)   ($Author$)        
+------------------------------------------------------------------------------*/
+void GetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_MsgType **pMsg)
+{
+    assert_param(NULL != pMsg);
+    *pMsg = &(SsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg);
+}
+void SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_MsgType *pMsg)
+{
+    assert_param(NULL != pMsg);
+    SsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg = *pMsg;
+}'''
         f_write = open(self.saveDir + '\Rte_Com_Can.c','a')
         for config in self.config_list:
             fundef_write_str = demo_str.replace('($Channel$)',config[2]).replace('($Dic$)',config[3]).replace('($Node$)',config[1])\
