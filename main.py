@@ -50,8 +50,8 @@ class Main(QWidget,Ui_MainWin):
             #os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
             QMessageBox.information(self,'提示','代码生成完毕')
             os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
-        except:
-            QMessageBox.warning(self,'提示','代码生成失败')
+        except Exception as e:
+            QMessageBox.warning(self,'提示','代码生成失败:' + e.args[0])
 
         #以下部分为Rte_Com_Can.c文件生成
     def Creat_Rte_c(self):
@@ -76,27 +76,27 @@ class Main(QWidget,Ui_MainWin):
             raise Exception
         '''
         demo_str = '''/*------------------------------------------------------------------------------
-| Function Name   : GetRTECOMMCAN_($Channel$)($Dic$)($Node$)0x($ID$)_Msg / SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg
+| Function Name   : GetRTECOMMCAN_($Channel$)($Dic$)($Node$)0x($ID$)_Msg / SetRTECOMMCAN_($Channel$)($Dic$)($Node$)0x($ID$)_Msg
 | Called by       :
 | Preconditions   :
 | Input Parameters: pMsg : message info pointer
 | Return Value    :
-| Description     : Get / Set ($Channel$)bus($Dic$)($Node$)0x($ID$) message
+| Description     : Get / Set ($Channel$)($Dic$)($Node$)0x($ID$) message
 | History         :
 |   DATE        AUTHOR          Description
 |   ----------  --------------  ------------------------------------------------
 |   ($Date$)   ($Author$)        
 ------------------------------------------------------------------------------*/
-void GetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_MsgType **pMsg)
+void GetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)($Dic$)($Node$)0x($ID$)_MsgType **pMsg)
 {
     assert_param(NULL != pMsg);
-    *pMsg = &(SsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg);
+    *pMsg = &(SsRTECOMMCAN_h_($Channel$)($Dic$)($Node$)0x($ID$)_Msg);
 }
-void SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_MsgType *pMsg)
+void SetRTECOMMCAN_($Channel$)($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_h_($Channel$)($Dic$)($Node$)0x($ID$)_MsgType *pMsg)
 {
     assert_param(NULL != pMsg);
-    SsRTECOMMCAN_h_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg = *pMsg;
-}'''
+    SsRTECOMMCAN_h_($Channel$)($Dic$)($Node$)0x($ID$)_Msg = *pMsg;
+}\n'''
         f_write = open(self.saveDir + '\Rte_Com_Can.c','a')
         for config in self.config_list:
             fundef_write_str = demo_str.replace('($Channel$)',config[2]).replace('($Dic$)',config[3]).replace('($Node$)',config[1])\
@@ -108,8 +108,8 @@ void SetRTECOMMCAN_($Channel$)bus($Dic$)($Node$)0x($ID$)_Msg(const TsRTECOMMCAN_
         Tpdef_str = '''typedef struct TsRTECOMMCAN_h_(Node)_0x(ID)_msgTypeTag
 {
 } TsRTECOMMCAN_h_(Chl)(Dic)(Node)0x(ID)_MsgType;\n'''
-        Fundec_str ='''extern void GetRTECOMMCAN_(Chl)(Dic)0x(ID)_Msg(const TsRTECOMMCAN_h_(Chl)(Dic)0x(ID)_MsgType **pMsg);
-extern void SetRTECOMMCAN_(Chl)(Dic)0x(ID)_Msg(const TsRTECOMMCAN_h_(Chl)(Dic)0x(ID)_MsgType *pMsg);\n'''
+        Fundec_str ='''extern void GetRTECOMMCAN_(Chl)(Dic)(Node)0x(ID)_Msg(const TsRTECOMMCAN_h_(Chl)(Dic)(Node)0x(ID)_MsgType **pMsg);
+extern void SetRTECOMMCAN_(Chl)(Dic)(Node)0x(ID)_Msg(const TsRTECOMMCAN_h_(Chl)(Dic)(Node)0x(ID)_MsgType *pMsg);\n'''
         with open(self.saveDir + '\Rte_Com_Can.h','w') as f:
             for config in self.config_list:
                 write_str = Tpdef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
@@ -118,6 +118,7 @@ extern void SetRTECOMMCAN_(Chl)(Dic)0x(ID)_Msg(const TsRTECOMMCAN_h_(Chl)(Dic)0x
             for config in self.config_list:
                 write_str = Fundec_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
                 f.write(write_str)
+                f.write('\n')
     def Creat_ComCfg_c(self):
         RsvFundef_str = '''/*******************************************************************************
 | Function Name   : MngCOMCFGCAN_RcvMsg_(Chl)(Dic)(Node)0x(ID)
@@ -154,32 +155,86 @@ void MngCOMCFGCAN_RcvMsg_(Chl)(Dic)(Node)0x(ID)(const void *pCanMsg)
 Std_ReturnType MngCOMCFGCAN_TrsMsg_(Chl)(Dic)(Node)0x(ID)(void)
 {
     const TsRTECOMMCAN_h_(Chl)(Dic)(Node)0x(ID)_MsgType *LpCOMCFGCAN_h_(Chl)(Dic)(Node)0x(ID)_Msg = NULL;
-
+    GetRTECOMMCAN_(Chl)(Dic)(Node)0x(ID)_Msg(&LpCOMCFGCAN_h_(Chl)(Dic)(Node)0x(ID)_Msg);
     return (E_OK);
 }
 '''
+        LostFundef_str="""void MngCOM_(Chl)RxLost_(Node)0x(ID)(void)
+{
+    SetRTECOMMCAN_(Chl)(Dic)(Node)0x(ID)_Msg(&CsCOM_h_(Chl)Lost(Node)0x(ID)_Msg);
+}
+"""
+        PrecopyFundef_str='''vuint8 MngCOM_(Chl)RxPrecopy_(Node)0x(ID)(CanRxInfoStructPtr rxStruct)
+{
+    MngCOM_ConfirmRx(CeCOM_e_(Chl)Rx(Node)0x(ID));
+    return (kCanCopyData);
+}
+'''
         with open(self.saveDir + '\Com_Cfg_Can.c','w') as f:
+            #生成报文丢失回调函数默认值变量
+            for config in self.config_list:
+                if config[3] == 'Rx':
+                    Lostvaldef_write_str = 'static TsRTECOMMCAN_h_' + config[2] + config[3] + config[1] + '0x' + config[0] + '_MsgType'\
+                                + '\t' + 'CsCOM_h_' + config[2] + "Lost" + config[1] + '0x' + config[0] + '_Msg'\
+                                + '\t\t' + '= {0,};\n'
+                    f.write(Lostvaldef_write_str)
+            #生成主函数
             for config in self.config_list:
                 if config[3] == 'Rx':
                     write_str = RsvFundef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])\
                                 .replace('($Date$)',self.timeCurrent).replace('($Author$)',self.lineEdit_authorName.text())
                     f.write(write_str)
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
             for config in self.config_list:
                 if config[3] == 'Tx':
                     write_str = TrsFundef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])\
                                 .replace('($Date$)',self.timeCurrent).replace('($Author$)',self.lineEdit_authorName.text())
                     f.write(write_str)
-    def Creat_ComCfg_h(self):
-        RsvFundef_str = 'extern void MngCOMCFGCAN_RcvMsg_(Chl)(Dic)(Node)0x(ID)(const void *pCanMsg);\n'
-        TrsFundef_str = 'extern Std_ReturnType MngCOMCFGCAN_TrsMsg_(Chl)(Dic)(Node)0x(ID)(void);'
-        with open(self.saveDir + '\Com_Cfg_Can.h','w') as f:
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
+            #生成Lost函数
             for config in self.config_list:
                 if config[3] == 'Rx':
-                    write_str = RsvFundef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
+                    write_str = LostFundef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
                     f.write(write_str)
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
+            #生成Precopy函数
+            for config in self.config_list:
+                if config[3] == 'Rx':
+                    write_str = PrecopyFundef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2].replace('Dic',config[3]))
+                    f.write(write_str)
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
+            for config in self.config_list:
+                if config[3] == 'Rx':
+                    write_str = "CeCOM_e_ID_(Chl)Rx(Node)0x(ID),\n".replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2])
+                    f.write(write_str)
+
+    def Creat_ComCfg_h(self):
+        RsvFundcl_str = 'extern void MngCOMCFGCAN_RcvMsg_(Chl)(Dic)(Node)0x(ID)(const void *pCanMsg);\n'
+        TrsFundcl_str = 'extern Std_ReturnType MngCOMCFGCAN_TrsMsg_(Chl)(Dic)(Node)0x(ID)(void);\n'
+        LostFundcl_str = 'extern void MngCOM_(Chl)RxLost_(Node)0x(ID)(void);\n'
+        PrecopyFundcl_str = 'extern vuint8 MngCOM_(Chl)RxPrecopy_(Node)0x(ID)(CanRxInfoStructPtr rxStruct);\n'
+        with open(self.saveDir + '\Com_Cfg_Can.h','w') as f:
+            #生成主函数声明代码
+            for config in self.config_list:
+                if config[3] == 'Rx':
+                    write_str = RsvFundcl_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
+                    f.write(write_str)
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
             for config in self.config_list:
                 if config[3] == 'Tx':
-                    write_str = TrsFundef_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
+                    write_str = TrsFundcl_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2]).replace('(Dic)',config[3])
+                    f.write(write_str)
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
+            #生成Lost函数声明代码
+            for config in self.config_list:
+                if config[3] == 'Rx':
+                    write_str = LostFundcl_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2])
+                    f.write(write_str)
+            f.write('-----------------------------------------------------------------------------------------------------------\n')
+            #生成Precopy函数声明代码
+            for config in self.config_list:
+                if config[3] == 'Rx':
+                    write_str = PrecopyFundcl_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2])
                     f.write(write_str)
 if __name__ == '__main__':
     try:
