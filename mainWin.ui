@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>500</width>
+    <width>600</width>
     <height>280</height>
    </rect>
   </property>
@@ -18,13 +18,13 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>500</width>
+    <width>600</width>
     <height>280</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>500</width>
+    <width>600</width>
     <height>280</height>
    </size>
   </property>
@@ -144,6 +144,47 @@
    <property name="text">
     <string>生成代码路径</string>
    </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBox_Evbus">
+   <property name="geometry">
+    <rect>
+     <x>290</x>
+     <y>40</y>
+     <width>71</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Evbus</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="checkBox_Pbus">
+   <property name="geometry">
+    <rect>
+     <x>400</x>
+     <y>40</y>
+     <width>71</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Pbus</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="comboBox_choseNode">
+   <property name="geometry">
+    <rect>
+     <x>510</x>
+     <y>101</y>
+     <width>81</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>选择节点</string>
+    </property>
+   </item>
   </widget>
  </widget>
  <resources/>

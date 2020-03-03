@@ -1,10 +1,13 @@
 import os
 import sys
+import re
 if hasattr(sys, 'frozen'):
     os.environ['PATH'] = sys._MEIPASS + ";" + os.environ['PATH']
 from PyQt5.QtWidgets import QWidget,QApplication,QFileDialog,QMessageBox
 from mainWin import *
 import time
+import Message
+import Signal
 class Main(QWidget,Ui_MainWin):
     def __init__(self):
         super(Main, self).__init__()
@@ -14,15 +17,32 @@ class Main(QWidget,Ui_MainWin):
         self.pushButton_openfile.clicked.connect(self.OpenExcel)
         self.pushButton_startcreat.clicked.connect(self.StartCreat)
         self.pushButton_filesave.clicked.connect(self.choiceDir)
+        self.checkBox_Evbus.stateChanged.connect(self.checkBox_Evbus_checked)
+        self.checkBox_Pbus.stateChanged.connect(self.checkBox_Pbus_checked)
+        self.comboBox_choseNode.currentIndexChanged[str].connect(self.Get_NodeName)
         self.timeCurrent = time.strftime('%Y-%m-%d',time.localtime(time.time()))
         self.lineEdit_codesave_path.setText(os.path.abspath(os.path.dirname(os.getcwd())))
         self.saveDir = self.lineEdit_codesave_path.text()
         self.show()
-
+    def checkBox_Evbus_checked(self):
+        if self.checkBox_Evbus.isChecked() == True:
+            self.busChl = 'Evbus'
+            self.checkBox_Pbus.setChecked(False)
+    def checkBox_Pbus_checked(self):
+        if self.checkBox_Pbus.isChecked() == True:
+            self.busChl = 'Pbus'
+            self.checkBox_Evbus.setChecked(False)
     def OpenExcel(self):
-        fname = QFileDialog.getOpenFileName(self,'打开文件','./',('Text(*.txt)'))
-        if fname[0]:
-            self.lineEdit.setText(fname[0])
+        self.fname = QFileDialog.getOpenFileName(self,'打开文件','./',('DBC文件(*.dbc);;Text(*.txt)'))
+        if self.fname[0]:
+            self.lineEdit.setText(self.fname[0])  #记录文件位置
+            if 'DBC文件(*.dbc)'== self.fname[1]:
+                self.Get_signalInfo(self.lineEdit.text()) #获取dbc文件内容
+                self.comboBox_choseNode.addItems(self.nodeName_array)
+                pass
+    def Get_NodeName(self,nodeName):
+        self.nodeName = nodeName
+        pass
 
     def choiceDir(self):
         Dir_path = QFileDialog.getExistingDirectory(self,'请选择保存源代码路径','./')
@@ -37,16 +57,22 @@ class Main(QWidget,Ui_MainWin):
         except FileNotFoundError:
             QMessageBox.warning(self,'提示','并未找到所选路径配置文件,请检查路径')
             return
-        #将配置文件中的每一行读取出来
-        for line in f_read.readlines():
-            line = line[:-1].split('\t')
-            self.config_list.append(line)
-        f_read.close()
+        #识别打开的文件类型,将配置文件中的每一行读取出来
+        if 'Text(*.txt)' == self.fname[1]:
+            for line in f_read.readlines():
+                line = line[:-1].split('\t')
+                self.config_list.append(line)
+            f_read.close()
+        elif 'DBC文件(*.dbc)'== self.fname[1]:
+            pass
         try:
             self.Creat_Rte_c()
-            self.Creat_Rte_h()
-            self.Creat_ComCfg_c()
             self.Creat_ComCfg_h()
+            if 'Text(*.txt)' == self.fname[1]:
+                self.Creat_Rte_h()
+                self.Creat_ComCfg_c()
+            elif 'DBC文件(*.dbc)'== self.fname[1]:
+                pass
             #os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
             QMessageBox.information(self,'提示','代码生成完毕')
             os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
@@ -236,6 +262,45 @@ Std_ReturnType MngCOMCFGCAN_TrsMsg_(Chl)(Dic)(Node)0x(ID)(void)
                 if config[3] == 'Rx':
                     write_str = PrecopyFundcl_str.replace('(Node)',config[1]).replace('(ID)',config[0]).replace('(Chl)',config[2])
                     f.write(write_str)
+    def Get_signalInfo(self,dbc_path):
+        with open(dbc_path) as f:
+            dbc_str = f.readlines()
+        self.msg_array = []
+        self.nodeName_array = []
+        msg_array_index = 0
+        message_flag = False
+        oldtime = time.time()
+        for line in dbc_str:
+            if re.match('BO_ (\d+) (\S+): (\d+) (\S+)',line) != None:
+                message_flag = True
+            if True == message_flag:
+                if re.match('BO_ (\d+) (\S+): (\d+) (\S+)',line) != None:
+                    message_groups = re.search('BO_ (\d+) (\S+): (\d+) (\S+)', line).groups()
+                    msg_id   = message_groups[0]
+                    msg_name = message_groups[1]
+                    msg_dlc  = message_groups[2]
+                    msg_node = message_groups[3]
+                    message_ins = Message.Message(msg_id, msg_name, msg_dlc, msg_node)
+                    self.msg_array.append(message_ins)
+                    self.nodeName_array.append(message_ins.msg_node)
+                elif re.match(' SG_ (\S+) : \d+\|\d+@0\+ \((\d+\.?\d*),(-?\d+)\) \[(-?\d+\.?\d*)\|(-?\d+\.?\d*)\] "(\S+)"*',line) != None:
+                    signal_groups = re.search(' SG_ (\S+) : \d+\|(\d+)@0\+ \((\d+\.?\d*),(-?\d+)\) \[(-?\d+\.?\d*)\|(-?\d+\.?\d*)\] "(\S+)"*', line).groups()
+                    signal_name     = signal_groups[0]
+                    signal_dlc      = signal_groups[1]
+                    signal_factor   = signal_groups[2]
+                    signal_offset   = signal_groups[3]
+                    signal_minValue = signal_groups[4]
+                    signal_maxValue = signal_groups[5]
+                    signal_unit     = signal_groups[6]
+                    signal_ins = Signal.signal(signal_name,signal_dlc,signal_factor,signal_offset,signal_minValue,signal_maxValue,signal_unit)
+                    self.msg_array[msg_array_index].signal_add(signal_ins)
+                    pass
+                elif '\n' == line:
+                    msg_array_index = msg_array_index + 1
+                    message_flag = False
+            if re.match('CM_ .*',line) != None:
+                self.nodeName_array = list(set(self.nodeName_array))
+                break
 if __name__ == '__main__':
     try:
         app = QApplication(sys.argv)
