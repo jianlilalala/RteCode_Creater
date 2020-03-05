@@ -7,3 +7,7 @@ class signal:
         self.minValue = minValue
         self.maxValue = maxValue
         self.unit = unit
+
+    def __Get_signalMoreInfo(self):
+        self.varLen = 0
+        self.unitRate = 0

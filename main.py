@@ -14,16 +14,17 @@ class Main(QWidget,Ui_MainWin):
 
         self.setupUi(self)
         self.lineEdit.setText(os.path.abspath(os.path.dirname(os.getcwd())) + '\配置.txt')
-        self.pushButton_openfile.clicked.connect(self.OpenExcel)
+        self.pushButton_openfile.clicked.connect(self.OpenDBC)
         self.pushButton_startcreat.clicked.connect(self.StartCreat)
         self.pushButton_filesave.clicked.connect(self.choiceDir)
         self.checkBox_Evbus.stateChanged.connect(self.checkBox_Evbus_checked)
         self.checkBox_Pbus.stateChanged.connect(self.checkBox_Pbus_checked)
         self.comboBox_choseNode.currentIndexChanged[str].connect(self.Get_NodeName)
-        self.timeCurrent = time.strftime('%Y-%m-%d',time.localtime(time.time()))
+        #self.timeCurrent = time.strftime('%Y-%m-%d',time.localtime(time.time()))
         self.lineEdit_codesave_path.setText(os.path.abspath(os.path.dirname(os.getcwd())))
         self.saveDir = self.lineEdit_codesave_path.text()
         self.show()
+    #复选框选中处理函数
     def checkBox_Evbus_checked(self):
         if self.checkBox_Evbus.isChecked() == True:
             self.busChl = 'Evbus'
@@ -32,47 +33,42 @@ class Main(QWidget,Ui_MainWin):
         if self.checkBox_Pbus.isChecked() == True:
             self.busChl = 'Pbus'
             self.checkBox_Evbus.setChecked(False)
-    def OpenExcel(self):
-        self.fname = QFileDialog.getOpenFileName(self,'打开文件','./',('DBC文件(*.dbc);;Text(*.txt)'))
+    #打开需要读取的DBC文件
+    def OpenDBC(self):
+        self.fname = QFileDialog.getOpenFileName(self,'打开文件','./',('DBC文件(*.dbc)'))
         if self.fname[0]:
             self.lineEdit.setText(self.fname[0])  #记录文件位置
             if 'DBC文件(*.dbc)'== self.fname[1]:
                 self.Get_signalInfo(self.lineEdit.text()) #获取dbc文件内容
                 self.comboBox_choseNode.addItems(self.nodeName_array)
-                pass
+    #获取下拉框内当前选择节点的名称
     def Get_NodeName(self,nodeName):
         self.nodeName = nodeName
-        pass
+        for msg_info in self.msg_array:
+            if nodeName == msg_info.msg_node:
+                msg_info.msg_dirc = 'Tx'
+            else:
+                msg_info.msg_dirc = 'Rx'
 
+    #选择生成代码存放目录
     def choiceDir(self):
         Dir_path = QFileDialog.getExistingDirectory(self,'请选择保存源代码路径','./')
         if Dir_path:
             self.lineEdit_codesave_path.setText(Dir_path)
         self.saveDir = self.lineEdit_codesave_path.text()
+    #开始生成代码
     def StartCreat(self):
-        self.config_list = []
         #尝试打开选定路径文件,若是文件不存在则弹窗警告
         try:
             f_read = open(self.lineEdit.text(),'r',encoding='utf-8')
         except FileNotFoundError:
             QMessageBox.warning(self,'提示','并未找到所选路径配置文件,请检查路径')
             return
-        #识别打开的文件类型,将配置文件中的每一行读取出来
-        if 'Text(*.txt)' == self.fname[1]:
-            for line in f_read.readlines():
-                line = line[:-1].split('\t')
-                self.config_list.append(line)
-            f_read.close()
-        elif 'DBC文件(*.dbc)'== self.fname[1]:
-            pass
         try:
             self.Creat_Rte_c()
             self.Creat_ComCfg_h()
-            if 'Text(*.txt)' == self.fname[1]:
-                self.Creat_Rte_h()
-                self.Creat_ComCfg_c()
-            elif 'DBC文件(*.dbc)'== self.fname[1]:
-                pass
+            self.Creat_Rte_h()
+            self.Creat_ComCfg_c()
             #os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
             QMessageBox.information(self,'提示','代码生成完毕')
             os.system('start explorer ' + self.lineEdit_codesave_path.text().replace('/','\\'))
@@ -84,9 +80,9 @@ class Main(QWidget,Ui_MainWin):
         #创建一个新的文件,将静态变量定义写入到文件开头
         try:
             with open(self.saveDir + '\Rte_Com_Can.c','w') as f_write:
-                for config in self.config_list:
-                    valdef_write_str = 'static TsRTECOMMCAN_h_' + config[2] + config[3] + config[1] + '0x' + config[0] + '_MsgType'\
-                                + '\t' + 'SsRTECOMMCAN_h_' + config[2] + config[3] + config[1] + '0x' + config[0] + '_Msg'\
+                for msg_Info in self.msg_array:
+                    valdef_write_str = 'static TsRTECOMCAN_h_' + self.busChl + msg_Info.msg_dirc + msg_Info.msg_node + msg_Info.msg_id + '_MsgType'\
+                                + '\t' + 'SsRTECOMCAN_h_' + self.busChl + msg_Info.msg_dirc + msg_Info.msg_node + msg_Info.msg_id + '_Msg'\
                                 + '\t\t' + '= {0,};\n'
                     f_write.write(valdef_write_str)
         except Exception:
@@ -281,8 +277,11 @@ Std_ReturnType MngCOMCFGCAN_TrsMsg_(Chl)(Dic)(Node)0x(ID)(void)
                     msg_dlc  = message_groups[2]
                     msg_node = message_groups[3]
                     message_ins = Message.Message(msg_id, msg_name, msg_dlc, msg_node)
-                    self.msg_array.append(message_ins)
-                    self.nodeName_array.append(message_ins.msg_node)
+                    if ('VECTOR__INDEPENDENT_SIG_MSG' == message_ins.msg_name) | ('Test_' in message_ins.msg_name):
+                        message_flag = False
+                    else:
+                        self.msg_array.append(message_ins)
+                        self.nodeName_array.append(message_ins.msg_node)
                 elif re.match(' SG_ (\S+) : \d+\|\d+@0\+ \((\d+\.?\d*),(-?\d+)\) \[(-?\d+\.?\d*)\|(-?\d+\.?\d*)\] "(\S+)"*',line) != None:
                     signal_groups = re.search(' SG_ (\S+) : \d+\|(\d+)@0\+ \((\d+\.?\d*),(-?\d+)\) \[(-?\d+\.?\d*)\|(-?\d+\.?\d*)\] "(\S+)"*', line).groups()
                     signal_name     = signal_groups[0]
@@ -293,7 +292,7 @@ Std_ReturnType MngCOMCFGCAN_TrsMsg_(Chl)(Dic)(Node)0x(ID)(void)
                     signal_maxValue = signal_groups[5]
                     signal_unit     = signal_groups[6]
                     signal_ins = Signal.signal(signal_name,signal_dlc,signal_factor,signal_offset,signal_minValue,signal_maxValue,signal_unit)
-                    self.msg_array[msg_array_index].signal_add(signal_ins)
+                    self.msg_array[msg_array_index].__signal_add(signal_ins)
                     pass
                 elif '\n' == line:
                     msg_array_index = msg_array_index + 1
